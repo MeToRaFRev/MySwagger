@@ -1,14 +1,16 @@
 const express = require("express");
 const router = express.Router();
+const fs = require("fs");
+const Converter = require("api-spec-converter");
 
 router.get("/", (req, res) => {
-  res.json({
+  return res.json({
     api: "Convertion",
     paths: [`GET-${req.originalUrl}/swagger`, `GET-${req.originalUrl}/schema`],
   });
 });
 router.get("/swagger", (req, res) => {
-  res.json({
+  return res.json({
     api: "Swagger Convertion",
     paths: [
       `POST-${req.originalUrl}/v2tov3`,
@@ -18,41 +20,47 @@ router.get("/swagger", (req, res) => {
     ],
   });
 });
-router.get("/swagger/:type", (req, res) => {
+router.post("/swagger/:type", async (req, res) => {
   const tmpFile = "/tmp/swagger.json";
-  switch (req.params.type) {
-    case "v2tov3":
-      fs.writeFile(tmpFile, JSON.stringify(req.body), function (err) {
-        if (err)
-          return res.json({
-            error: "failed to use swagger",
-            info: "couldnt write file",
-          });
-      });
-      let options = { syntax: "json" };
-      if (req.query.format) {
-        if (req.query.format == "yaml") {
-          options = { syntax: "yaml" };
-        }
+  let options = { syntax: "json" };
+  let input = "";
+  let output = "";
+  if (req.params.type === "v2tov3" || "v3tov2") {
+    if (req.params.type === "v2tov3") {
+      input = "swagger_2";
+      output = "openapi_3";
+    } else if (req.params.type === "v3tov2") {
+      input = "openapi_3";
+      output = "swagger_2";
+    }
+    fs.writeFile(tmpFile, JSON.stringify(req.body), function (err) {
+      if (err)
+        return res.json({
+          error: "failed to use swagger",
+          info: "couldnt write file",
+        });
+    });
+    if (req.query.format) {
+      if (req.query.format == "yaml") {
+        options = { syntax: "yaml" };
       }
-      Converter.convert(
-        {
-          from: "swagger_2",
-          to: "openapi_3",
-          source: tmpFile,
-        },
-        function (err, converted) {
-          if (err) {
-            res.status(404).send(err.stringify());
-          }
-          res.send(converted.stringify(options));
+    }
+    Converter.convert(
+      {
+        from: input,
+        to: output,
+        source: tmpFile,
+      },
+      function (err, converted) {
+        if (err) {
+          return res.status(400).send({
+            error: "failed to convert",
+            info: "check versions of swagger or its validity",
+          });
         }
-      );
-      break;
-    case "v3tov2":
-      break;
-    default:
-      res.json({ error: "Invalid type", info: "Valid types: v2tov3, v3tov2" });
+        return res.json(JSON.parse(converted.stringify(options)));
+      }
+    );
   }
 });
 

@@ -15,6 +15,7 @@ const cert = fs.readFileSync(process.env.cert_windows);
 const ssl = { key: key, cert: cert };
 // App
 const app = express();
+app.use(express.json());
 app.set("json spaces", 2);
 
 const convert = require("./routes/convert");
