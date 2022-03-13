@@ -27,5 +27,5 @@ app.use('/convert', convert);
 app.use('/validate', validate)
 
 const server = https.createServer(ssl, app)
-server.listen(PORT, HOST);
+app.listen(PORT, HOST);
 console.log(`Running on https://${HOST}:${PORT}`);
