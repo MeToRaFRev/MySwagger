@@ -5,9 +5,9 @@
        "title":"samsa",
        "description":"Convert between OpenAPI v2 and v3 formats (YAML/JSON). start project by u1i forked by aviel-levy"
     },
-    "basePath":"/convert",
+    "basePath":"",
     "paths":{
-       "/Swagger/v3tov2":{
+       "/convert/swagger/v3tov2":{
           "post":{
              "operationId":"POST_v3tov2",
              "summary":"OpenAPI 3.0 to Swagger",
