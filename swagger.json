@@ -1,0 +1,195 @@
+{
+    "swagger":"2.0",
+    "info":{
+       "version":"1.0",
+       "title":"samsa",
+       "description":"Convert between OpenAPI v2 and v3 formats (YAML/JSON). start project by u1i forked by aviel-levy"
+    },
+    "basePath":"/convert",
+    "paths":{
+       "/Swagger/v3tov2":{
+          "post":{
+             "operationId":"POST_v3tov2",
+             "summary":"OpenAPI 3.0 to Swagger",
+             "description":"Just add a swaggerv3 in the body",
+             "parameters":[
+                {
+                   "name":"format",
+                   "in":"query",
+                   "type":"string",
+                   "enum":[
+                      "json",
+                      "yaml"
+                   ]
+                },
+                {
+                   "name":"swaggerv3",
+                   "in":"body",
+                   "type":"object",
+                   "properties":{
+                      
+                   }
+                }
+             ],
+             "responses":{
+                "200":{
+                   "description":"your new v2 swagger"
+                },
+                "400":{
+                   "description":"fix your input"
+                }
+             }
+          }
+       },
+       "/Swagger/v2tov3":{
+          "post":{
+             "operationId":"v2tov3",
+             "summary":"Swagger to OpenAPI 3.0",
+             "description":"Just add a swaggerv2 in the body",
+             "parameters":[
+                {
+                   "name":"format",
+                   "in":"query",
+                   "type":"string",
+                   "enum":[
+                      "json",
+                      "yaml"
+                   ]
+                },
+                {
+                   "name":"swaggerv2",
+                   "in":"body",
+                   "type":"object",
+                   "properties":{
+                      
+                   }
+                }
+             ],
+             "responses":{
+                "200":{
+                   "description":"your new v3 swagger"
+                },
+                "400":{
+                   "description":"fix your input"
+                }
+             }
+          }
+       },
+       "/Swagger/v2tojsv":{
+          "post":{
+             "operationId":"v2toJSV",
+             "summary":"Swagger to JSV",
+             "description":"Just add a swaggerv2 in the body",
+             "parameters":[
+                {
+                   "name":"MySwagger-Path",
+                   "in":"header",
+                   "type":"string"
+                },
+                {
+                   "name":"MySwagger-Method",
+                   "in":"header",
+                   "type":"string",
+                   "enum":[
+                      "post",
+                      "get",
+                      "delete",
+                      "patch",
+                      "options",
+                      "put"
+                   ]
+                },
+                {
+                   "name":"MySwagger-Direction",
+                   "in":"header",
+                   "type":"string",
+                   "enum":[
+                      "request",
+                      "response"
+                   ]
+                },
+                {
+                   "name":"swaggerv2",
+                   "in":"body",
+                   "type":"object",
+                   "properties":{
+                      
+                   }
+                }
+             ],
+             "responses":{
+                "200":{
+                   "description":"jsv for your requested service"
+                },
+                "400":{
+                   "description":"fix your input"
+                }
+             }
+          }
+       },
+       "/Schema/validate":{
+          "post":{
+             "operationId":"validate",
+             "summary":"Validates your input against schema",
+             "description":"use this convension : {'schema':{data},'input':{data}}",
+             "parameters":[
+                {
+                   "name":"validation",
+                   "in":"body",
+                   "type":"object",
+                   "properties":{
+                      "schema":{
+                         "type":"object",
+                         "properties":{
+                            
+                         }
+                      },
+                      "input":{
+                         "type":"object",
+                         "properties":{
+                            
+                         }
+                      }
+                   }
+                }
+             ],
+             "responses":{
+                "200":{
+                   "description":"your new v3 swagger"
+                },
+                "500":{
+                   "description":"fix your input"
+                }
+             }
+          }
+       },
+       "/Schema/v4tov7":{
+          "post":{
+             "operationId":"v4tov7",
+             "summary":"Schema v4 To Schema v7",
+             "description":"Just put schema v4 in body",
+             "parameters":[
+                {
+                   "name":"v4tov7",
+                   "in":"body",
+                   "type":"object",
+                   "properties":{
+                      
+                   }
+                }
+             ],
+             "responses":{
+                "200":{
+                   "description":"your new v7 schema"
+                },
+                "500":{
+                   "description":"fix your input"
+                }
+             }
+          }
+       }
+    },
+    "definitions":{
+       
+    }
+ }
