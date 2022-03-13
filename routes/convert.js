@@ -64,6 +64,15 @@ router.post("/swagger/:type", async (req, res) => {
   }
 });
 
+router.get("/swagger/v2", (req, res) => {
+  return res.json({
+    api: "Swagger v2 Convertion",
+    paths: [`POST-${req.originalUrl}/toJSV`],
+  });
+});
+
+router.post("/swagger/v2/toJSV", (req, res) => {});
+
 router.get("/schema", (req, res) => {
   //fill this later
   res.json({
