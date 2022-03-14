@@ -18,12 +18,11 @@ const app = express();
 app.use(express.json());
 app.set("json spaces", 2);
 
+const swagger = require("./routes/swagger");
 const convert = require("./routes/convert");
 const validate = require("./routes/validate");
 
-app.get(["/", "/swagger"], (req, res) => {
-  res.sendFile("/swagger.json", { root: __dirname });
-});
+app.use("/", swagger);
 app.use("/convert", convert);
 app.use("/validate", validate);
 

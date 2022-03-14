@@ -1,8 +1,10 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
+const fs = require("fs");
+const path = require("path");
 
-router.get('/', (req, res) => {
-    res.json({ "TEST": "TEST" })
+router.get(["/", "/swagger"], (req, res) => {
+  res.sendFile(path.join(__dirname, "../swagger.json"));
 });
 
 module.exports = router;
