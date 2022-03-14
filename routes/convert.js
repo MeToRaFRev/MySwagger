@@ -121,6 +121,7 @@ function reformatSchema(schema, body) {
 
 const HandleSchema = async (body, path, method, direction) => {
   return new Promise((resolve, reject) => {
+    body = Harden(body);
     switch (direction) {
       case "request":
         const parameters = body.paths[path][method].parameters;
@@ -226,7 +227,6 @@ function Harden(swagger, newSwagger) {
 
 router.post("/swagger/v2/Harden", (req, res) => {
   const body = req.body;
-  let newSwagger = {};
   newSwagger = Harden(body);
   return res.json(newSwagger);
 });
