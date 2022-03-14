@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const fs = require("fs");
 const Converter = require("api-spec-converter");
+const { response } = require("express");
 
 router.get("/", (req, res) => {
   return res.json({
@@ -71,6 +72,32 @@ router.get("/swagger/v2", (req, res) => {
   });
 });
 
+const reformatSchema = (schema) => {};
+
+const HandleSchema = (body, path, method, direction) => {
+  return new Promise((resolve, reject) => {
+    switch (direction) {
+      case "request":
+        const parameters = body.paths[path][method].parameters;
+        break;
+      case "response":
+        const responses = body.paths[path][method].responses;
+        Object.keys(responses).forEach((key) => {
+          if (Number(key) >= 200 && Number(key) < 300) {
+            const responseSchema = responses[key].schema;
+            return resolve(responseSchema);
+          } else {
+            return reject({
+              error: "OK schema not found",
+              info: "schema is empty",
+            });
+          }
+        });
+        break;
+    }
+  });
+};
+
 router.post("/swagger/v2/toJSV", (req, res) => {
   if (!req.body.swagger) {
     return res.json({
@@ -96,9 +123,10 @@ router.post("/swagger/v2/toJSV", (req, res) => {
       info: "check your header {MySwagger-Direction}",
     });
   }
-  const path = req.header("MySwagger-Path");
-  const method = req.header("MySwagger-Method");
-  const direction = req.header("MySwagger-Direction");
+  const body = req.body;
+  const path = req.header("MySwagger-Path").toLowerCase();
+  const method = req.header("MySwagger-Method").toLowerCase();
+  const direction = req.header("MySwagger-Direction").toLowerCase();
   if (!req.body.paths[path]) {
     return res.json({
       error: "path not found",
@@ -108,15 +136,22 @@ router.post("/swagger/v2/toJSV", (req, res) => {
   if (!req.body.paths[path][method]) {
     return res.json({
       error: "method not found",
-      info: `check your swagger if in ${path} it has this ${method}`,
+      info: `check your swagger if PATH:${path} has METHOD:${method}`,
     });
   }
-  if (!direction === "request" || "response") {
+  if (!(direction === "request" || "response")) {
     return res.json({
       error: "direction is not valid",
       info: `{MySwagger-Direction} can only be request or response`,
     });
   }
+  const data = HandleSchema(body, path, method, direction)
+    .then((data) => {
+      res.json(data);
+    })
+    .catch((err) => {
+      res.json(err);
+    });
 });
 
 router.get("/schema", (req, res) => {
