@@ -72,7 +72,7 @@ router.get("/swagger/v2", (req, res) => {
   });
 });
 
-function iterate(schema, body, definitions) {
+const iterate = (schema, body, definitions) => {
   Object.entries(schema).forEach(([key, value]) => {
     if (key === "$ref") {
       const ref = value.split("#/definitions/")[1];
@@ -83,17 +83,17 @@ function iterate(schema, body, definitions) {
     }
   });
   return definitions;
-}
+};
 
-function findDefinitions(schema, body, definitions) {
+const findDefinitions = (schema, body, definitions) => {
   definitions = iterate(schema, body, definitions);
   if (definitions.length > 0) {
     return definitions;
   }
   return { error: "information", info: "no definitions found" };
-}
+};
 
-function reformatSchema(schema, body) {
+const reformatSchema = (schema, body) => {
   newSchema = { $schema: "http://json-schema.org/draft-04/schema#" };
   if (Object.keys(schema).length === 0) {
     return {
@@ -117,9 +117,9 @@ function reformatSchema(schema, body) {
     console.log(definitions);
   }
   return newSchema;
-}
+};
 
-const HandleSchema = async (body, path, method, direction) => {
+const HandleSchema = (body, path, method, direction) => {
   return new Promise((resolve, reject) => {
     body = Harden(body);
     switch (direction) {
@@ -199,7 +199,7 @@ router.post("/swagger/v2/toJSV", (req, res) => {
     });
 });
 
-function Harden(swagger, newSwagger) {
+const Harden = (swagger, newSwagger) => {
   newSwagger = newSwagger || {};
   Object.entries(swagger).forEach(([key, value]) => {
     if (typeof value === "object") {
@@ -223,7 +223,7 @@ function Harden(swagger, newSwagger) {
     }
   });
   return newSwagger;
-}
+};
 
 router.post("/swagger/v2/Harden", (req, res) => {
   const body = req.body;
