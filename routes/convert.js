@@ -198,6 +198,39 @@ router.post("/swagger/v2/toJSV", (req, res) => {
     });
 });
 
+function Harden(swagger, newSwagger) {
+  newSwagger = newSwagger || {};
+  Object.entries(swagger).forEach(([key, value]) => {
+    if (typeof value === "object") {
+      if (Array.isArray(value)) {
+        newSwagger[key] = value;
+        return;
+      }
+      switch (key) {
+        case "properties":
+          newSwagger["additionalProperties"] = false;
+          break;
+        case "items":
+          newSwagger["additionalItems"] = false;
+      }
+      newSwagger[key] = Harden(value);
+    } else {
+      if (key === "addiitonalProperties" || key === "additionalItems") {
+        return;
+      }
+      newSwagger[key] = value;
+    }
+  });
+  return newSwagger;
+}
+
+router.post("/swagger/v2/Harden", (req, res) => {
+  const body = req.body;
+  let newSwagger = {};
+  newSwagger = Harden(body);
+  return res.json(newSwagger);
+});
+
 router.get("/schema", (req, res) => {
   //fill this later
   res.json({
