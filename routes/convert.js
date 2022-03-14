@@ -72,9 +72,54 @@ router.get("/swagger/v2", (req, res) => {
   });
 });
 
-const reformatSchema = (schema) => {};
+function iterate(schema, body, definitions) {
+  Object.entries(schema).forEach(([key, value]) => {
+    if (key === "$ref") {
+      const ref = value.split("#/definitions/")[1];
+      definitions.push(ref);
+      iterate(body.definitions[ref], body, definitions);
+    } else if (typeof value === "object") {
+      iterate(value, body, definitions);
+    }
+  });
+  return definitions;
+}
 
-const HandleSchema = (body, path, method, direction) => {
+function findDefinitions(schema, body, definitions) {
+  definitions = iterate(schema, body, definitions);
+  if (definitions.length > 0) {
+    return definitions;
+  }
+  return { error: "information", info: "no definitions found" };
+}
+
+function reformatSchema(schema, body) {
+  newSchema = { $schema: "http://json-schema.org/draft-04/schema#" };
+  if (Object.keys(schema).length === 0) {
+    return {
+      error: "OK schema not found",
+      info: "schema is empty",
+    };
+  }
+  Object.entries(schema).forEach(([key, value]) => {
+    newSchema[key] = value;
+  });
+  const arr = [];
+  const definitions = findDefinitions(schema, body, arr);
+  if (!definitions.error) {
+    if (definitions.length > 0) {
+      newSchema["definitions"] = {};
+      definitions.forEach((definition) => {
+        newSchema.definitions[definition] = body.definitions[definition];
+      });
+    }
+  } else {
+    console.log(definitions);
+  }
+  return newSchema;
+}
+
+const HandleSchema = async (body, path, method, direction) => {
   return new Promise((resolve, reject) => {
     switch (direction) {
       case "request":
@@ -85,15 +130,14 @@ const HandleSchema = (body, path, method, direction) => {
         Object.keys(responses).forEach((key) => {
           if (Number(key) >= 200 && Number(key) < 300) {
             const responseSchema = responses[key].schema;
-            return resolve(responseSchema);
-          } else {
-            return reject({
-              error: "OK schema not found",
-              info: "schema is empty",
-            });
+            const reformattedSchema = reformatSchema(responseSchema, body);
+            return resolve(reformattedSchema);
           }
         });
-        break;
+        return reject({
+          error: "OK schema not found",
+          info: "schema is empty",
+        });
     }
   });
 };
@@ -145,12 +189,12 @@ router.post("/swagger/v2/toJSV", (req, res) => {
       info: `{MySwagger-Direction} can only be request or response`,
     });
   }
-  const data = HandleSchema(body, path, method, direction)
+  HandleSchema(body, path, method, direction)
     .then((data) => {
-      res.json(data);
+      return res.json(data);
     })
     .catch((err) => {
-      res.json(err);
+      return res.json(err);
     });
 });
 
