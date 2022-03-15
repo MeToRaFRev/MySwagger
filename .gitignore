@@ -1,5 +1,6 @@
 # Customs
-/ssl
+/ssl/cert.pem
+/ssl/key.pem
 /.vscode
 # Logs
 logs
