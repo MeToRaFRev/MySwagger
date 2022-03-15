@@ -71,21 +71,21 @@ router.get("/swagger/v2", (req, res) => {
   });
 });
 
-const iterate = (schema, body, definitions) => {
+const findAllRef = (schema, body, definitions) => {
   Object.entries(schema).forEach(([key, value]) => {
     if (key === "$ref") {
       const ref = value.split("#/definitions/")[1];
       definitions.push(ref);
-      iterate(body.definitions[ref], body, definitions);
+      findAllRef(body.definitions[ref], body, definitions);
     } else if (typeof value === "object") {
-      iterate(value, body, definitions);
+      findAllRef(value, body, definitions);
     }
   });
   return definitions;
 };
 
 const findDefinitions = (schema, body, definitions) => {
-  definitions = iterate(schema, body, definitions);
+  definitions = findAllRef(schema, body, definitions);
   if (definitions.length > 0) {
     return definitions;
   }
@@ -119,19 +119,28 @@ const reformatSchema = (schema, body) => {
 };
 
 const extractInfo = (parameter, data, type) => {
-  data[type][parameter.name] = {};
-  if ("type" in parameter) data[type][parameter.name].type = parameter.type;
-  if ("required" in parameter) {
-    if (type == "schema") {
-      data[type].required.push(parameter.name);
-    } else {
+  if (type !== "schema") {
+    data[type][parameter.name] = {};
+    if ("type" in parameter) data[type][parameter.name].type = parameter.type;
+    if ("required" in parameter) {
       data[type][parameter.name].required = parameter.required;
     }
+    if ("format" in parameter)
+      data[type][parameter.name].format = parameter.format;
+    if ("pattern" in parameter)
+      data[type][parameter.name].pattern = parameter.pattern;
+  } else {
+    data[type]["properties"][parameter.name] = {};
+    if ("type" in parameter)
+      data[type]["properties"][parameter.name].type = parameter.type;
+    if ("required" in parameter) {
+      data[type].required.push(parameter.name);
+    }
+    if ("format" in parameter)
+      data[type]["properties"][parameter.name].format = parameter.format;
+    if ("pattern" in parameter)
+      data[type]["properties"][parameter.name].pattern = parameter.pattern;
   }
-  if ("format" in parameter)
-    data[type][parameter.name].format = parameter.format;
-  if ("pattern" in parameter)
-    data[type][parameter.name].pattern = parameter.pattern;
 };
 
 const HandleSchema = (body, path, method, direction) => {
@@ -157,6 +166,9 @@ const HandleSchema = (body, path, method, direction) => {
                 request.schema.$schema =
                   "http://json-schema.org/draft-04/schema#";
                 request.schema.required = request.schema.required || [];
+                request.schema.additionalProperties = false;
+                request.schema.type = "object";
+                request.schema.properties = request.schema.properties || {};
                 extractInfo(parameter, request, "schema");
                 break;
               case "body":
@@ -186,6 +198,17 @@ const HandleSchema = (body, path, method, direction) => {
         });
     }
   });
+};
+
+const NullIt = (schema) => {
+  Object.entries(schema).forEach(([key, value]) => {
+    if (key === "type") {
+      schema[key] = [value, "null"];
+    } else if (typeof value === "object") {
+      NullIt(value);
+    }
+  });
+  return schema;
 };
 
 router.post("/swagger/v2/toJSV", (req, res) => {
@@ -235,8 +258,16 @@ router.post("/swagger/v2/toJSV", (req, res) => {
       info: `{MySwagger-Direction} can only be request or response`,
     });
   }
+  req.query?.nullify === "true" ? (nullify = true) : (nullify = false);
   HandleSchema(body, path, method, direction)
     .then((data) => {
+      if (nullify) {
+        if (data.schema) {
+          data.schema = NullIt(data.schema);
+        } else {
+          data = NullIt(data);
+        }
+      }
       return res.json(data);
     })
     .catch((err) => {
