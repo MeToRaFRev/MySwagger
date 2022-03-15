@@ -237,7 +237,7 @@ router.post("/swagger/v2/toJSV", (req, res) => {
     });
   }
   const body = req.body;
-  const path = req.header("MySwagger-Path").toLowerCase();
+  const path = req.header("MySwagger-Path");
   const method = req.header("MySwagger-Method").toLowerCase();
   const direction = req.header("MySwagger-Direction").toLowerCase();
   if (!req.body.paths[path]) {
@@ -255,7 +255,7 @@ router.post("/swagger/v2/toJSV", (req, res) => {
   if (!(direction === "request" || "response")) {
     return res.json({
       error: "direction is not valid",
-      info: `{MySwagger-Direction} can only be request or response`,
+      info: `${MySwagger - Direction} can only be request or response`,
     });
   }
   req.query?.nullify === "true" ? (nullify = true) : (nullify = false);
