@@ -35,7 +35,7 @@ router.post("/swagger/:type", async (req, res) => {
     }
     fs.writeFile(tmpFile, JSON.stringify(req.body), function (err) {
       if (err)
-        return res.json({
+        return res.status(500).json({
           error: "failed to use swagger",
           info: "couldnt write file",
         });
@@ -121,32 +121,22 @@ const reformatSchema = (schema, body) => {
 const extractInfo = (parameter, data, type) => {
   if (type !== "schema") {
     data[type][parameter.name] = {};
-    if ("type" in parameter) data[type][parameter.name].type = parameter.type;
-    if ("required" in parameter) {
-      data[type][parameter.name].required = parameter.required;
-    }
-    if ("format" in parameter)
-      data[type][parameter.name].format = parameter.format;
-    if ("pattern" in parameter)
-      data[type][parameter.name].pattern = parameter.pattern;
+    Object.entries(parameter).forEach(([key, value]) => {
+      if (!(key === "in" || key === "name"))
+        data[type][parameter.name][key] = value;
+    });
   } else {
     data[type]["properties"][parameter.name] = {};
-    if ("type" in parameter)
-      data[type]["properties"][parameter.name].type = parameter.type;
-    if ("required" in parameter) {
-      data[type].required.push(parameter.name);
-    }
-    if ("format" in parameter)
-      data[type]["properties"][parameter.name].format = parameter.format;
-    if ("pattern" in parameter)
-      data[type]["properties"][parameter.name].pattern = parameter.pattern;
+    Object.entries(parameter).forEach(([key, value]) => {
+      if (!(key === "in" || key === "description" || key === "name"))
+        data[type]["properties"][parameter.name][key] = value;
+    });
   }
 };
 
 const HandleSchema = (body, path, method, direction) => {
   let request = { headers: {}, querys: {}, paths: {}, schema: {} };
   return new Promise((resolve, reject) => {
-    body = Harden(body);
     switch (direction) {
       case "request":
         const parameters = body.paths[path][method].parameters;
@@ -213,25 +203,25 @@ const NullIt = (schema) => {
 
 router.post("/swagger/v2/toJSV", (req, res) => {
   if (!req.body.swagger) {
-    return res.json({
+    return res.status(400).json({
       error: "input is not swagger v2",
       info: "check your body",
     });
   }
   if (!req.header("MySwagger-Path")) {
-    return res.json({
+    return res.status(400).json({
       error: "no path provided",
       info: "check your header {MySwagger-Path}",
     });
   }
   if (!req.header("MySwagger-Method")) {
-    return res.json({
+    return res.status(400).json({
       error: "no method provided",
       info: "check your header {MySwagger-Method}",
     });
   }
   if (!req.header("MySwagger-Direction")) {
-    return res.json({
+    return res.status(400).json({
       error: "no direction provided",
       info: "check your header {MySwagger-Direction}",
     });
@@ -241,24 +231,28 @@ router.post("/swagger/v2/toJSV", (req, res) => {
   const method = req.header("MySwagger-Method").toLowerCase();
   const direction = req.header("MySwagger-Direction").toLowerCase();
   if (!req.body.paths[path]) {
-    return res.json({
+    return res.status(400).json({
       error: "path not found",
       info: `check your swagger if it has this ${path}`,
     });
   }
   if (!req.body.paths[path][method]) {
-    return res.json({
+    return res.status(400).json({
       error: "method not found",
       info: `check your swagger if PATH:${path} has METHOD:${method}`,
     });
   }
   if (!(direction === "request" || "response")) {
-    return res.json({
+    return res.status(400).json({
       error: "direction is not valid",
       info: `${MySwagger - Direction} can only be request or response`,
     });
   }
   req.query?.nullify === "true" ? (nullify = true) : (nullify = false);
+  req.query?.harden === "true" ? (harden = true) : (harden = false);
+  if (harden) {
+    body = Harden(body);
+  }
   HandleSchema(body, path, method, direction)
     .then((data) => {
       if (nullify) {
@@ -271,7 +265,7 @@ router.post("/swagger/v2/toJSV", (req, res) => {
       return res.json(data);
     })
     .catch((err) => {
-      return res.json(err);
+      return res.status(400).json(err);
     });
 });
 
@@ -303,8 +297,12 @@ const Harden = (swagger, newSwagger) => {
 
 router.post("/swagger/v2/Harden", (req, res) => {
   const body = req.body;
-  newSwagger = Harden(body);
-  return res.json(newSwagger);
+  if (req.body.swagger) {
+    newSwagger = Harden(body);
+    return res.json(newSwagger);
+  } else {
+    res.status(400).json({ error: "body is not swagger v2" });
+  }
 });
 
 router.get("/schema", (req, res) => {
