@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const fs = require("fs");
 const Converter = require("api-spec-converter");
-const { response } = require("express");
 
 router.get("/", (req, res) => {
   return res.json({
@@ -68,7 +67,7 @@ router.post("/swagger/:type", async (req, res) => {
 router.get("/swagger/v2", (req, res) => {
   return res.json({
     api: "Swagger v2 Convertion",
-    paths: [`POST-${req.originalUrl}/toJSV`],
+    paths: [`POST-${req.originalUrl}/toJSV`, `POST-${req.originalUrl}/Harden`],
   });
 });
 
@@ -119,13 +118,59 @@ const reformatSchema = (schema, body) => {
   return newSchema;
 };
 
+const extractInfo = (parameter, data, type) => {
+  data[type][parameter.name] = {};
+  if ("type" in parameter) data[type][parameter.name].type = parameter.type;
+  if ("required" in parameter) {
+    if (type == "schema") {
+      data[type].required.push(parameter.name);
+    } else {
+      data[type][parameter.name].required = parameter.required;
+    }
+  }
+  if ("format" in parameter)
+    data[type][parameter.name].format = parameter.format;
+  if ("pattern" in parameter)
+    data[type][parameter.name].pattern = parameter.pattern;
+};
+
 const HandleSchema = (body, path, method, direction) => {
+  let request = { headers: {}, querys: {}, paths: {}, schema: {} };
   return new Promise((resolve, reject) => {
     body = Harden(body);
     switch (direction) {
       case "request":
         const parameters = body.paths[path][method].parameters;
-        break;
+        if (parameters) {
+          parameters.map((parameter) => {
+            switch (parameter.in) {
+              case "header":
+                extractInfo(parameter, request, "headers");
+                break;
+              case "query":
+                extractInfo(parameter, request, "querys");
+                break;
+              case "path":
+                extractInfo(parameter, request, "paths");
+                break;
+              case "formData":
+                request.schema.$schema =
+                  "http://json-schema.org/draft-04/schema#";
+                request.schema.required = request.schema.required || [];
+                extractInfo(parameter, request, "schema");
+                break;
+              case "body":
+                request.schema = reformatSchema(parameter.schema, body);
+                break;
+            }
+          });
+          return resolve(request);
+        } else {
+          reject({
+            error: "no schema found",
+            info: "no parameters found in swagger",
+          });
+        }
       case "response":
         const responses = body.paths[path][method].responses;
         Object.keys(responses).forEach((key) => {
