@@ -305,6 +305,13 @@ router.post("/swagger/v2/Harden", (req, res) => {
   }
 });
 
+// create a post router with the url /swagger/v2/Helloworld and the function will output hello world
+router.post("/swagger/v2/Helloworld", (req, res) => {
+  res.json({
+    message: "hello world",
+  });
+});
+
 router.get("/schema", (req, res) => {
   //fill this later
   res.json({
