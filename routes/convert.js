@@ -226,7 +226,7 @@ router.post("/swagger/v2/toJSV", (req, res) => {
       info: "check your header {MySwagger-Direction}",
     });
   }
-  const body = req.body;
+  let body = req.body;
   const path = req.header("MySwagger-Path");
   const method = req.header("MySwagger-Method").toLowerCase();
   const direction = req.header("MySwagger-Direction").toLowerCase();

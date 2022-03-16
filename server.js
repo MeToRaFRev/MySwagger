@@ -6,11 +6,11 @@ require("dotenv/config");
 const PORT = 8080;
 const HOST = "0.0.0.0";
 //Container SSL
-const key = fs.readFileSync(process.env.key_linux);
-const cert = fs.readFileSync(process.env.cert_linux);
+// const key = fs.readFileSync(process.env.key_linux);
+// const cert = fs.readFileSync(process.env.cert_linux);
 //Windows SSL
-// const key = fs.readFileSync(process.env.key_windows);
-// const cert = fs.readFileSync(process.env.cert_windows);
+const key = fs.readFileSync(process.env.key_windows);
+const cert = fs.readFileSync(process.env.cert_windows);
 
 const ssl = { key: key, cert: cert };
 // App
