@@ -2,19 +2,21 @@ const express = require("express");
 const fs = require("fs");
 const https = require("https");
 require("dotenv/config");
+var cors = require("cors");
 // Constants
 const PORT = 8080;
 const HOST = "0.0.0.0";
 //Container SSL
-// const key = fs.readFileSync(process.env.key_linux);
-// const cert = fs.readFileSync(process.env.cert_linux);
+const key = fs.readFileSync(process.env.key_linux);
+const cert = fs.readFileSync(process.env.cert_linux);
 //Windows SSL
-const key = fs.readFileSync(process.env.key_windows);
-const cert = fs.readFileSync(process.env.cert_windows);
+// const key = fs.readFileSync(process.env.key_windows);
+// const cert = fs.readFileSync(process.env.cert_windows);
 
 const ssl = { key: key, cert: cert };
 // App
 const app = express();
+app.use(cors());
 app.use(express.json());
 app.set("json spaces", 2);
 
