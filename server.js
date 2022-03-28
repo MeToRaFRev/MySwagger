@@ -16,7 +16,7 @@ const cert = fs.readFileSync(process.env.cert_windows);
 const ssl = { key: key, cert: cert };
 // App
 const app = express();
-app.use(cors());
+app.use(cors({ origin: "*" }));
 app.use(express.json({ limit: "50mb" }));
 app.set("json spaces", 2);
 
