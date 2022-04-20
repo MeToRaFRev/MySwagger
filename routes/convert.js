@@ -133,24 +133,6 @@ const NullIt = (schema) => {
   });
   return schema;
 };
-//Routes
-router.get("/", (req, res) => {
-  return res.json({
-    api: "Convertion",
-    paths: [`GET-${req.originalUrl}/swagger`, `GET-${req.originalUrl}/schema`],
-  });
-});
-router.get("/swagger", (req, res) => {
-  return res.json({
-    api: "Swagger Convertion",
-    paths: [
-      `POST-${req.originalUrl}/v2tov3`,
-      `POST-${req.originalUrl}/v3tov2`,
-      `GET-${req.originalUrl}/v2`,
-      `GET-${req.originalUrl}/v3`,
-    ],
-  });
-});
 router.post("/swagger/:type", async (req, res) => {
   const tmpFile = "/tmp/swagger.json";
   let options = { syntax: "json" };
@@ -177,6 +159,8 @@ router.post("/swagger/:type", async (req, res) => {
         return res.status(500).json({
           error: "failed to use swagger",
           info: "couldnt write file",
+          "adv": err,
+          
         });
     });
     if (req.query.format) {
@@ -228,15 +212,8 @@ const Harden = (swagger, newSwagger) => {
   });
   return newSwagger;
 };
-
-router.get("/swagger/v2", (req, res) => {
-  return res.json({
-    api: "Swagger v2 Convertion",
-    paths: [`POST-${req.originalUrl}/toJSV`, `POST-${req.originalUrl}/Harden`],
-  });
-});
-
 router.post("/swagger/v2/toJSV", (req, res) => {
+  console.log(req.body);
   if (!req.body.swagger) {
     return res.status(400).json({
       error: "input is not swagger v2",
