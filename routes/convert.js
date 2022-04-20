@@ -46,7 +46,10 @@ const reformatSchema = (schema, body) => {
       });
     }
   } else {
-    console.log(definitions);
+    return {
+      error: "OK definitions not found",
+      info: "definitions is empty",
+    };
   }
   return newSchema;
 };
@@ -123,12 +126,20 @@ const HandleSchema = (body, path, method, direction) => {
   });
 };
 
-const NullIt = (schema) => {
+const NullIt = (schema,type) => {
   Object.entries(schema).forEach(([key, value]) => {
     if (key === "type") {
-      schema[key] = [value, "null"];
+     switch(type){
+        case "basic":
+          if(value !== "array" && value !== "object"){
+            schema[key] = ["null",value];
+          }
+          break;
+        case "all":
+          schema[key] = ["null",value];
+     }
     } else if (typeof value === "object") {
-      NullIt(value);
+      NullIt(value,type);
     }
   });
   return schema;
@@ -140,14 +151,14 @@ router.post("/swagger/:type", async (req, res) => {
   let output = "";
   if (req.params.type === "v2tov3" || "v3tov2") {
     if (req.params.type === "v2tov3") {
-      console.log({
-        body: req.body,
-        params: req.params,
-        query: req.query,
-        files: req.files,
-        headers: req.headers,
-        method: req.method,
-      });
+      // console.log({
+      //   body: req.body,
+      //   params: req.params,
+      //   query: req.query,
+      //   files: req.files,
+      //   headers: req.headers,
+      //   method: req.method,
+      // });
       input = "swagger_2";
       output = "openapi_3";
     } else if (req.params.type === "v3tov2") {
@@ -213,7 +224,6 @@ const Harden = (swagger, newSwagger) => {
   return newSwagger;
 };
 router.post("/swagger/v2/toJSV", (req, res) => {
-  console.log(req.body);
   if (!req.body.swagger) {
     return res.status(400).json({
       error: "input is not swagger v2",
@@ -260,19 +270,22 @@ router.post("/swagger/v2/toJSV", (req, res) => {
       info: `${MySwagger - Direction} can only be request or response`,
     });
   }
-  req.query?.nullify === "true" ? (nullify = true) : (nullify = false);
+  nullify = req.query?.nullify;
   req.query?.harden === "true" ? (harden = true) : (harden = false);
   if (harden) {
     body = Harden(body);
   }
   HandleSchema(body, path, method, direction)
     .then((data) => {
-      if (nullify) {
-        if (data.schema) {
-          data.schema = NullIt(data.schema);
-        } else {
-          data = NullIt(data);
-        }
+      switch(nullify) {
+        case "all":
+          data = NullIt(data, "all");
+          break;
+        case "basic":
+          data = NullIt(data, "basic");
+          break;
+        default:
+          break;
       }
       return res.json(data);
     })

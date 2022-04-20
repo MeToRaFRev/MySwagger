@@ -129,8 +129,7 @@
                      "PATCH",
                      "HEAD",
                      "OPTIONS"
-                  ],
-                  "default": false
+                  ]
                },
                {
                   "name": "MySwagger-Path",
@@ -156,8 +155,12 @@
                },
                {
                   "name": "nullify",
-                  "in": "body",
-                  "type": "object"
+                  "in": "query",
+                  "type": "string",
+                  "enum": [
+                     "basic",
+                     "all"
+                  ]
                },
                {
                   "name": "swaggerv2",
@@ -167,7 +170,7 @@
             ],
             "responses": {
                "200": {
-                  "description": "your new hardened swagger"
+                  "description": "request direction output: is a 4 key JSON with explainations of the request\nresponse direction output: is a JSV"
                },
                "400": {
                   "description": "fix your input"
