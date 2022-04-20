@@ -1,129 +1,179 @@
 {
-    "swagger":"2.0",
-    "info":{
-       "version":"1.0",
-       "title":"samsa",
-       "description":"Convert between OpenAPI v2 and v3 formats (YAML/JSON). start project by u1i forked by aviel-levy"
-    },
-    "basePath":"",
-    "paths":{
-      "/convert/swagger/v3tov2":{
-         "post":{
-            "operationId":"POST_v3tov2",
-            "summary":"OpenAPI 3.0 to Swagger v2.0",
-            "description":"Just add a openapi 3.0 in the body",
-            "parameters":[
+   "swagger": "2.0",
+   "info": {
+      "version": "1.0",
+      "title": "MySwagger",
+      "description": "Multi tool for swagger/schema manipulations"
+   },
+   "basePath": "",
+   "paths": {
+      "/convert/swagger/v3tov2": {
+         "post": {
+            "operationId": "POST_v3tov2",
+            "summary": "OpenAPI 3.0 to Swagger v2.0",
+            "description": "Just add a openapi 3.0 in the body",
+            "parameters": [
                {
-                  "name":"format",
-                  "in":"query",
-                  "type":"string",
-                  "enum":[
+                  "name": "format",
+                  "in": "query",
+                  "type": "string",
+                  "enum": [
                      "json",
                      "yaml"
                   ]
                },
                {
-                  "name":"openapiv3",
-                  "in":"body",
-                  "type":"object"
+                  "name": "openapiv3",
+                  "in": "body",
+                  "type": "object",
+                  "example": {
+                     "openapi": "3.0.0",
+                     "info": {
+                        "title": "MySwagger",
+                        "version": "1.0"
+                     }
+                  }
                }
             ],
-            "responses":{
-               "200":{
-                  "description":"your new v2 swagger"
+            "responses": {
+               "200": {
+                  "description": "your new v2 swagger"
                },
-               "400":{
-                  "description":"fix your input"
+               "400": {
+                  "description": "fix your input"
                }
             }
          }
       },
-      "/convert/swagger/v2tov3":{
-         "post":{
-            "operationId":"POST_v2tov3",
-            "summary":"Swagger 2.0 to OpenAPI 3.0",
-            "description":"Just add a swagger v2 in the body",
-            "parameters":[
+      "/convert/swagger/v2tov3": {
+         "post": {
+            "operationId": "POST_v2tov3",
+            "summary": "Swagger 2.0 to OpenAPI 3.0",
+            "description": "Just add a swagger v2 in the body",
+            "parameters": [
                {
-                  "name":"format",
-                  "in":"query",
-                  "type":"string",
-                  "enum":[
+                  "name": "format",
+                  "in": "query",
+                  "type": "string",
+                  "enum": [
                      "json",
                      "yaml"
                   ]
                },
                {
-                  "name":"swaggerv2",
-                  "in":"body",
-                  "type":"object"
+                  "name": "swaggerv2",
+                  "in": "body",
+                  "type": "object"
                }
             ],
-            "responses":{
-               "200":{
-                  "description":"your new v3 openapi"
+            "responses": {
+               "200": {
+                  "description": "your new v3 openapi"
                },
-               "400":{
-                  "description":"fix your input"
+               "400": {
+                  "description": "fix your input"
                }
             }
          }
       },
-      "/convert/swagger/v2/Harden":{
-         "post":{
-            "operationId":"POST_Swagger-v2-Harden",
-            "summary":"Harden Swagger v2 with additionalProperties and additionaItems",
-            "description":"Just add a swagger v2 in the body",
-            "parameters":[
+      "/convert/swagger/v2/Harden": {
+         "post": {
+            "operationId": "POST_Swagger-v2-Harden",
+            "summary": "Harden Swagger v2 with additionalProperties and additionaItems",
+            "description": "Just add a swagger v2 in the body",
+            "parameters": [
                {
-                  "name":"nullify",
-                  "in":"query",
-                  "type":"boolean",
-                  "default":false
+                  "name": "nullify",
+                  "in": "query",
+                  "type": "boolean",
+                  "default": false
                },
                {
-                  "name":"harden",
-                  "in":"query",
-                  "type":"boolean",
-                  "default":false
+                  "name": "harden",
+                  "in": "query",
+                  "type": "boolean",
+                  "default": false
                },
                {
-                  "name":"swaggerv2",
-                  "in":"body",
-                  "type":"object"
+                  "name": "swaggerv2",
+                  "in": "body",
+                  "type": "object"
                }
             ],
-            "responses":{
-               "200":{
-                  "description":"your new JSV"
+            "responses": {
+               "200": {
+                  "description": "your new JSV"
                },
-               "400":{
-                  "description":"fix your input"
+               "400": {
+                  "description": "fix your input"
                }
             }
          }
       },
-      "/convert/swagger/v2/toJSV":{
-         "post":{
-            "operationId":"POST_Swagger-to-JSV",
-            "summary":"Transform Swagger v2 to JSV",
-            "description":"Just add a swagger v2 in the body",
-            "parameters":[
+      "/convert/swagger/v2/toJSV": {
+         "post": {
+            "operationId": "POST_Swagger-to-JSV",
+            "summary": "Transform Swagger v2 to JSV",
+            "description": "Just add a swagger v2 in the body",
+            "parameters": [
                {
-                  "name":"swaggerv2",
-                  "in":"body",
-                  "type":"object"
+                  "name": "MySwagger-Method",
+                  "in": "header",
+                  "required": true,
+                  "type": "string",
+                  "enum": [
+                     "GET",
+                     "POST",
+                     "PUT",
+                     "DELETE",
+                     "PATCH",
+                     "HEAD",
+                     "OPTIONS"
+                  ],
+                  "default": false
+               },
+               {
+                  "name": "MySwagger-Path",
+                  "in": "header",
+                  "required": true,
+                  "type": "string",
+                  "default": "{your api path}"
+               },
+               {
+                  "name": "MySwagger-Direction",
+                  "in": "header",
+                  "required": true,
+                  "type": "string",
+                  "enum": [
+                     "request",
+                     "response"
+                  ]
+               },
+               {
+                  "name": "harden",
+                  "in": "query",
+                  "type": "boolean"
+               },
+               {
+                  "name": "nullify",
+                  "in": "body",
+                  "type": "object"
+               },
+               {
+                  "name": "swaggerv2",
+                  "in": "body",
+                  "type": "object"
                }
             ],
-            "responses":{
-               "200":{
-                  "description":"your new hardened swagger"
+            "responses": {
+               "200": {
+                  "description": "your new hardened swagger"
                },
-               "400":{
-                  "description":"fix your input"
+               "400": {
+                  "description": "fix your input"
                }
             }
          }
       }
    }
- }
+}
