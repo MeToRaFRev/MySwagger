@@ -3,74 +3,7 @@ const router = express.Router();
 const fs = require("fs");
 const Converter = require("api-spec-converter");
 
-router.get("/", (req, res) => {
-  return res.json({
-    api: "Convertion",
-    paths: [`GET-${req.originalUrl}/swagger`, `GET-${req.originalUrl}/schema`],
-  });
-});
-router.get("/swagger", (req, res) => {
-  return res.json({
-    api: "Swagger Convertion",
-    paths: [
-      `POST-${req.originalUrl}/v2tov3`,
-      `POST-${req.originalUrl}/v3tov2`,
-      `GET-${req.originalUrl}/v2`,
-      `GET-${req.originalUrl}/v3`,
-    ],
-  });
-});
-router.post("/swagger/:type", async (req, res) => {
-  const tmpFile = "/tmp/swagger.json";
-  let options = { syntax: "json" };
-  let input = "";
-  let output = "";
-  if (req.params.type === "v2tov3" || "v3tov2") {
-    if (req.params.type === "v2tov3") {
-      input = "swagger_2";
-      output = "openapi_3";
-    } else if (req.params.type === "v3tov2") {
-      input = "openapi_3";
-      output = "swagger_2";
-    }
-    fs.writeFile(tmpFile, JSON.stringify(req.body), function (err) {
-      if (err)
-        return res.status(500).json({
-          error: "failed to use swagger",
-          info: "couldnt write file",
-        });
-    });
-    if (req.query.format) {
-      if (req.query.format == "yaml") {
-        options = { syntax: "yaml" };
-      }
-    }
-    Converter.convert(
-      {
-        from: input,
-        to: output,
-        source: tmpFile,
-      },
-      function (err, converted) {
-        if (err) {
-          return res.status(400).send({
-            error: "failed to convert",
-            info: "check versions of swagger or its validity",
-          });
-        }
-        return res.json(JSON.parse(converted.stringify(options)));
-      }
-    );
-  }
-});
-
-router.get("/swagger/v2", (req, res) => {
-  return res.json({
-    api: "Swagger v2 Convertion",
-    paths: [`POST-${req.originalUrl}/toJSV`, `POST-${req.originalUrl}/Harden`],
-  });
-});
-
+// Functions
 const findAllRef = (schema, body, definitions) => {
   Object.entries(schema).forEach(([key, value]) => {
     if (key === "$ref") {
@@ -113,8 +46,9 @@ const reformatSchema = (schema, body) => {
       });
     }
   } else {
-    console.log(definitions);
-  }
+      console.log("info: definitions/no reference was found is empty");
+      delete newSchema.definitions;
+    };
   return newSchema;
 };
 
@@ -190,85 +124,78 @@ const HandleSchema = (body, path, method, direction) => {
   });
 };
 
-const NullIt = (schema) => {
+const NullIt = (schema,type) => {
   Object.entries(schema).forEach(([key, value]) => {
     if (key === "type") {
-      schema[key] = [value, "null"];
+     switch(type){
+        case "basic":
+          if(value !== "array" && value !== "object"){
+            schema[key] = ["null",value];
+          }
+          break;
+        case "all":
+          schema[key] = ["null",value];
+     }
     } else if (typeof value === "object") {
-      NullIt(value);
+      NullIt(value,type);
     }
   });
   return schema;
 };
-
-router.post("/swagger/v2/toJSV", (req, res) => {
-  if (!req.body.swagger) {
-    return res.status(400).json({
-      error: "input is not swagger v2",
-      info: "check your body",
+router.post("/swagger/:type", async (req, res) => {
+  const tmpFile = "/tmp/swagger.json";
+  let options = { syntax: "json" };
+  let input = "";
+  let output = "";
+  if (req.params.type === "v2tov3" || "v3tov2") {
+    if (req.params.type === "v2tov3") {
+      // console.log({
+      //   body: req.body,
+      //   params: req.params,
+      //   query: req.query,
+      //   files: req.files,
+      //   headers: req.headers,
+      //   method: req.method,
+      // });
+      input = "swagger_2";
+      output = "openapi_3";
+    } else if (req.params.type === "v3tov2") {
+      input = "openapi_3";
+      output = "swagger_2";
+    }
+    fs.writeFile(tmpFile, JSON.stringify(req.body), function (err) {
+      if (err)
+        return res.status(500).json({
+          error: "failed to use swagger",
+          info: "couldnt write file",
+          "adv": err,
+          
+        });
     });
-  }
-  if (!req.header("MySwagger-Path")) {
-    return res.status(400).json({
-      error: "no path provided",
-      info: "check your header {MySwagger-Path}",
-    });
-  }
-  if (!req.header("MySwagger-Method")) {
-    return res.status(400).json({
-      error: "no method provided",
-      info: "check your header {MySwagger-Method}",
-    });
-  }
-  if (!req.header("MySwagger-Direction")) {
-    return res.status(400).json({
-      error: "no direction provided",
-      info: "check your header {MySwagger-Direction}",
-    });
-  }
-  const body = req.body;
-  const path = req.header("MySwagger-Path");
-  const method = req.header("MySwagger-Method").toLowerCase();
-  const direction = req.header("MySwagger-Direction").toLowerCase();
-  if (!req.body.paths[path]) {
-    return res.status(400).json({
-      error: "path not found",
-      info: `check your swagger if it has this ${path}`,
-    });
-  }
-  if (!req.body.paths[path][method]) {
-    return res.status(400).json({
-      error: "method not found",
-      info: `check your swagger if PATH:${path} has METHOD:${method}`,
-    });
-  }
-  if (!(direction === "request" || "response")) {
-    return res.status(400).json({
-      error: "direction is not valid",
-      info: `${MySwagger - Direction} can only be request or response`,
-    });
-  }
-  req.query?.nullify === "true" ? (nullify = true) : (nullify = false);
-  req.query?.harden === "true" ? (harden = true) : (harden = false);
-  if (harden) {
-    body = Harden(body);
-  }
-  HandleSchema(body, path, method, direction)
-    .then((data) => {
-      if (nullify) {
-        if (data.schema) {
-          data.schema = NullIt(data.schema);
-        } else {
-          data = NullIt(data);
-        }
+    if (req.query.format) {
+      if (req.query.format == "yaml") {
+        options = { syntax: "yaml" };
       }
-      return res.json(data);
-    })
-    .catch((err) => {
-      return res.status(400).json(err);
-    });
-});
+    }
 
+    Converter.convert(
+      {
+        from: input,
+        to: output,
+        source: tmpFile,
+      },
+      function (err, converted) {
+        if (err) {
+          return res.status(400).send({
+            error: "failed to convert",
+            info: "check versions of swagger or its validity",
+          });
+        }
+        return res.json(JSON.parse(converted.stringify(options)));
+      }
+    );
+  }
+});
 const Harden = (swagger, newSwagger) => {
   newSwagger = newSwagger || {};
   Object.entries(swagger).forEach(([key, value]) => {
@@ -294,6 +221,76 @@ const Harden = (swagger, newSwagger) => {
   });
   return newSwagger;
 };
+router.post("/swagger/v2/toJSV", (req, res) => {
+  if (!req.body.swagger) {
+    return res.status(400).json({
+      error: "input is not swagger v2",
+      info: "check your body",
+    });
+  }
+  if (!req.header("MySwagger-Path")) {
+    return res.status(400).json({
+      error: "no path provided",
+      info: "check your header {MySwagger-Path}",
+    });
+  }
+  if (!req.header("MySwagger-Method")) {
+    return res.status(400).json({
+      error: "no method provided",
+      info: "check your header {MySwagger-Method}",
+    });
+  }
+  if (!req.header("MySwagger-Direction")) {
+    return res.status(400).json({
+      error: "no direction provided",
+      info: "check your header {MySwagger-Direction}",
+    });
+  }
+  let body = req.body;
+  const path = req.header("MySwagger-Path");
+  const method = req.header("MySwagger-Method").toLowerCase();
+  const direction = req.header("MySwagger-Direction").toLowerCase();
+  if (!req.body.paths[path]) {
+    return res.status(400).json({
+      error: "path not found",
+      info: `check your swagger if it has this ${path}`,
+    });
+  }
+  if (!req.body.paths[path][method]) {
+    return res.status(400).json({
+      error: "method not found",
+      info: `check your swagger if PATH:${path} has METHOD:${method}`,
+    });
+  }
+  if (!(direction === "request" || "response")) {
+    return res.status(400).json({
+      error: "direction is not valid",
+      info: `${MySwagger - Direction} can only be request or response`,
+    });
+  }
+  nullify = req.query?.nullify;
+  req.query?.harden === "true" ? (harden = true) : (harden = false);
+  if (harden) {
+    body = Harden(body);
+  }
+  HandleSchema(body, path, method, direction)
+    .then((data) => {
+      switch(nullify) {
+        case "all":
+          data = NullIt(data, "all");
+          break;
+        case "basic":
+          data = NullIt(data, "basic");
+          break;
+        default:
+          break;
+      }
+      return res.json(data);
+    })
+    .catch((err) => {
+      return res.status(400).json(err);
+    });
+});
 
 router.post("/swagger/v2/Harden", (req, res) => {
   const body = req.body;
