@@ -46,11 +46,9 @@ const reformatSchema = (schema, body) => {
       });
     }
   } else {
-    return {
-      error: "OK definitions not found",
-      info: "definitions is empty",
+      console.log("info: definitions/no reference was found is empty");
+      delete newSchema.definitions;
     };
-  }
   return newSchema;
 };
 
