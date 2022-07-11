@@ -21,6 +21,7 @@ router.get("/swagger", (req, res) => {
   });
 });
 router.post("/swagger/:type", async (req, res) => {
+  const tmpFile = "/tmp/swagger.json";
   let options = { syntax: "json" };
   let input = "";
   let output = "";
@@ -32,6 +33,13 @@ router.post("/swagger/:type", async (req, res) => {
       input = "openapi_3";
       output = "swagger_2";
     }
+    fs.writeFile(tmpFile, JSON.stringify(req.body), function (err) {
+      if (err)
+        return res.status(500).json({
+          error: "failed to use swagger",
+          info: "couldnt write file",
+        });
+    });
     if (req.query.format) {
       if (req.query.format == "yaml") {
         options = { syntax: "yaml" };
@@ -41,7 +49,7 @@ router.post("/swagger/:type", async (req, res) => {
       {
         from: input,
         to: output,
-        source: req.body,
+        source: tmpFile,
       },
       function (err, converted) {
         if (err) {
@@ -50,10 +58,7 @@ router.post("/swagger/:type", async (req, res) => {
             info: "check versions of swagger or its validity",
           });
         }
-        if (req.query.format === "yaml") {
-          return res.send(converted.stringify(options));
-        }
-        return res.json(JSON.parse(converted));
+        return res.json(JSON.parse(converted.stringify(options)));
       }
     );
   }
