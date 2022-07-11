@@ -3,7 +3,69 @@ const router = express.Router();
 const fs = require("fs");
 const Converter = require("api-spec-converter");
 
-// Functions
+router.get("/", (req, res) => {
+  return res.json({
+    api: "Convertion",
+    paths: [`GET-${req.originalUrl}/swagger`, `GET-${req.originalUrl}/schema`],
+  });
+});
+router.get("/swagger", (req, res) => {
+  return res.json({
+    api: "Swagger Convertion",
+    paths: [
+      `POST-${req.originalUrl}/v2tov3`,
+      `POST-${req.originalUrl}/v3tov2`,
+      `GET-${req.originalUrl}/v2`,
+      `GET-${req.originalUrl}/v3`,
+    ],
+  });
+});
+router.post("/swagger/:type", async (req, res) => {
+  let options = { syntax: "json" };
+  let input = "";
+  let output = "";
+  if (req.params.type === "v2tov3" || "v3tov2") {
+    if (req.params.type === "v2tov3") {
+      input = "swagger_2";
+      output = "openapi_3";
+    } else if (req.params.type === "v3tov2") {
+      input = "openapi_3";
+      output = "swagger_2";
+    }
+    if (req.query.format) {
+      if (req.query.format == "yaml") {
+        options = { syntax: "yaml" };
+      }
+    }
+    Converter.convert(
+      {
+        from: input,
+        to: output,
+        source: req.body,
+      },
+      function (err, converted) {
+        if (err) {
+          return res.status(400).send({
+            error: "failed to convert",
+            info: "check versions of swagger or its validity",
+          });
+        }
+        if (req.query.format === "yaml") {
+          return res.send(converted.stringify(options));
+        }
+        return res.json(JSON.parse(converted));
+      }
+    );
+  }
+});
+
+router.get("/swagger/v2", (req, res) => {
+  return res.json({
+    api: "Swagger v2 Convertion",
+    paths: [`POST-${req.originalUrl}/toJSV`, `POST-${req.originalUrl}/Harden`],
+  });
+});
+
 const findAllRef = (schema, body, definitions) => {
   Object.entries(schema).forEach(([key, value]) => {
     if (key === "$ref") {
@@ -46,9 +108,8 @@ const reformatSchema = (schema, body) => {
       });
     }
   } else {
-      console.log("info: definitions/no reference was found is empty");
-      delete newSchema.definitions;
-    };
+    console.log(definitions);
+  }
   return newSchema;
 };
 
@@ -124,103 +185,17 @@ const HandleSchema = (body, path, method, direction) => {
   });
 };
 
-const NullIt = (schema,type) => {
+const NullIt = (schema) => {
   Object.entries(schema).forEach(([key, value]) => {
     if (key === "type") {
-     switch(type){
-        case "basic":
-          if(value !== "array" && value !== "object"){
-            schema[key] = ["null",value];
-          }
-          break;
-        case "all":
-          schema[key] = ["null",value];
-     }
+      schema[key] = [value, "null"];
     } else if (typeof value === "object") {
-      NullIt(value,type);
+      NullIt(value);
     }
   });
   return schema;
 };
-router.post("/swagger/:type", async (req, res) => {
-  const tmpFile = "/tmp/swagger.json";
-  let options = { syntax: "json" };
-  let input = "";
-  let output = "";
-  if (req.params.type === "v2tov3" || "v3tov2") {
-    if (req.params.type === "v2tov3") {
-      // console.log({
-      //   body: req.body,
-      //   params: req.params,
-      //   query: req.query,
-      //   files: req.files,
-      //   headers: req.headers,
-      //   method: req.method,
-      // });
-      input = "swagger_2";
-      output = "openapi_3";
-    } else if (req.params.type === "v3tov2") {
-      input = "openapi_3";
-      output = "swagger_2";
-    }
-    fs.writeFile(tmpFile, JSON.stringify(req.body), function (err) {
-      if (err)
-        return res.status(500).json({
-          error: "failed to use swagger",
-          info: "couldnt write file",
-          "adv": err,
-          
-        });
-    });
-    if (req.query.format) {
-      if (req.query.format == "yaml") {
-        options = { syntax: "yaml" };
-      }
-    }
 
-    Converter.convert(
-      {
-        from: input,
-        to: output,
-        source: tmpFile,
-      },
-      function (err, converted) {
-        if (err) {
-          return res.status(400).send({
-            error: "failed to convert",
-            info: "check versions of swagger or its validity",
-          });
-        }
-        return res.json(JSON.parse(converted.stringify(options)));
-      }
-    );
-  }
-});
-const Harden = (swagger, newSwagger) => {
-  newSwagger = newSwagger || {};
-  Object.entries(swagger).forEach(([key, value]) => {
-    if (typeof value === "object") {
-      if (Array.isArray(value)) {
-        newSwagger[key] = value;
-        return;
-      }
-      switch (key) {
-        case "properties":
-          newSwagger["additionalProperties"] = false;
-          break;
-        case "items":
-          newSwagger["additionalItems"] = false;
-      }
-      newSwagger[key] = Harden(value);
-    } else {
-      if (key === "addiitonalProperties" || key === "additionalItems") {
-        return;
-      }
-      newSwagger[key] = value;
-    }
-  });
-  return newSwagger;
-};
 router.post("/swagger/v2/toJSV", (req, res) => {
   if (!req.body.swagger) {
     return res.status(400).json({
@@ -246,7 +221,7 @@ router.post("/swagger/v2/toJSV", (req, res) => {
       info: "check your header {MySwagger-Direction}",
     });
   }
-  let body = req.body;
+  const body = req.body;
   const path = req.header("MySwagger-Path");
   const method = req.header("MySwagger-Method").toLowerCase();
   const direction = req.header("MySwagger-Direction").toLowerCase();
@@ -268,22 +243,19 @@ router.post("/swagger/v2/toJSV", (req, res) => {
       info: `${MySwagger - Direction} can only be request or response`,
     });
   }
-  nullify = req.query?.nullify;
+  req.query?.nullify === "true" ? (nullify = true) : (nullify = false);
   req.query?.harden === "true" ? (harden = true) : (harden = false);
   if (harden) {
     body = Harden(body);
   }
   HandleSchema(body, path, method, direction)
     .then((data) => {
-      switch(nullify) {
-        case "all":
-          data = NullIt(data, "all");
-          break;
-        case "basic":
-          data = NullIt(data, "basic");
-          break;
-        default:
-          break;
+      if (nullify) {
+        if (data.schema) {
+          data.schema = NullIt(data.schema);
+        } else {
+          data = NullIt(data);
+        }
       }
       return res.json(data);
     })
@@ -291,6 +263,32 @@ router.post("/swagger/v2/toJSV", (req, res) => {
       return res.status(400).json(err);
     });
 });
+
+const Harden = (swagger, newSwagger) => {
+  newSwagger = newSwagger || {};
+  Object.entries(swagger).forEach(([key, value]) => {
+    if (typeof value === "object") {
+      if (Array.isArray(value)) {
+        newSwagger[key] = value;
+        return;
+      }
+      switch (key) {
+        case "properties":
+          newSwagger["additionalProperties"] = false;
+          break;
+        case "items":
+          newSwagger["additionalItems"] = false;
+      }
+      newSwagger[key] = Harden(value);
+    } else {
+      if (key === "addiitonalProperties" || key === "additionalItems") {
+        return;
+      }
+      newSwagger[key] = value;
+    }
+  });
+  return newSwagger;
+};
 
 router.post("/swagger/v2/Harden", (req, res) => {
   const body = req.body;
